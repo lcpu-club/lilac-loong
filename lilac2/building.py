@@ -85,6 +85,7 @@ def build_package(
       reap_zombies()
 
     staging = lilacinfo.staging
+    destdir = destdir / lilacinfo.destsubdir
     if staging:
       destdir = destdir / 'staging'
       if not destdir.is_dir():

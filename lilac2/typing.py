@@ -39,6 +39,7 @@ class LilacInfo:
   time_limit_hours: float
   staging: bool
   managed: bool
+  destsubdir: str
 
 LilacInfos = Dict[str, LilacInfo]
 
