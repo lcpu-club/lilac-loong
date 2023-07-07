@@ -100,7 +100,7 @@ def lilac_build(
       run_cmd(['recv_gpg_keys'])
       vcs_update()
 
-    pkgvers = pkgbuild.check_srcinfo()
+    pkgvers = pkgbuild.check_srcinfo(config['repository'].get('official', False))
     _G.built_version = str(pkgvers)
 
     default_build_prefix = config['lilac'].get('default_build_prefix') or \
