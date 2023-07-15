@@ -5,15 +5,8 @@ description: Descriptive configuration data for lilac packaging
 type: object
 properties:
   build_prefix:
-    description: The prefix of build command to be used. E.g. extra-x86_64, multilib or archlinuxcn-x86_64.
+    description: The prefix of build command to be used instead of default_build_prefix. E.g. extra-x86_64, multilib or archlinuxcn-x86_64.
     type: string
-    default: "extra-$(uname -m)"
-    enum:
-      - extra-x86_64
-      - archlinuxcn-x86_64
-      - multilib
-      - multilib-archlinuxcn
-      - extra-aarch64
   pre_build:
     description: Name of function to be used as the pre_build function.
     type: string
@@ -129,6 +122,10 @@ properties:
     description: Whether to stage the package in a "staging" subdirectory
     type: boolean
     default: false
+  destsubdir:
+    description: Place the package in this subdirectory
+    type: string
+    default: ""
   managed:
     description: Whether the package should be built by lilac or not
     type: boolean
