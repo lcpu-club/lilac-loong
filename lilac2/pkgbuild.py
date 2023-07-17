@@ -97,7 +97,7 @@ def load_data(dbpath: Path) -> None:
     db = H.register_syncdb(_G.repo.name, 0)
     _repo_package_versions = {p.name: p.version for p in db.pkgcache}
 
-def check_srcinfo() -> PkgVers:
+def check_srcinfo(official: bool = False) -> PkgVers:
   srcinfo = get_srcinfo().decode('utf-8').splitlines()
   bad_groups = []
   bad_packages = []
@@ -130,7 +130,7 @@ def check_srcinfo() -> PkgVers:
       # the newly built package is not in repos yet - fine
       pass
 
-  if bad_groups or bad_packages:
+  if not official and (bad_groups or bad_packages):
     raise ConflictWithOfficialError(bad_groups, bad_packages)
 
   return pkgvers

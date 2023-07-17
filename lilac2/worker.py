@@ -30,6 +30,9 @@ from .lilacyaml import load_lilacinfo
 from .const import _G, PACMAN_DB_DIR, mydir
 from .repo import Repo
 
+from .tools import read_config
+config = read_config()
+
 logger = logging.getLogger(__name__)
 
 class SkipBuild(Exception):
@@ -97,10 +100,11 @@ def lilac_build(
       run_cmd(['recv_gpg_keys'])
       vcs_update()
 
-    pkgvers = pkgbuild.check_srcinfo()
+    pkgvers = pkgbuild.check_srcinfo(config['repository'].get('official', False))
     _G.built_version = str(pkgvers)
 
-    default_build_prefix = 'extra-%s' % (platform.machine() or 'x86_64')
+    default_build_prefix = config['lilac'].get('default_build_prefix') or \
+                           'extra-%s' % (platform.machine() or 'x86_64')
     build_prefix = build_prefix or getattr(
       mod, 'build_prefix', default_build_prefix)
     if not isinstance(build_prefix, str):
@@ -204,8 +208,6 @@ def run_build_cmd(cmd: Cmd) -> None:
 def main() -> None:
   enable_pretty_logging('DEBUG')
 
-  from .tools import read_config
-  config = read_config()
   repo = _G.repo = Repo(config)
   pkgbuild.load_data(PACMAN_DB_DIR)
   _G.commit_msg_prefix = repo.commit_msg_prefix
