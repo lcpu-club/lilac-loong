@@ -33,6 +33,7 @@ class LilacInfo:
   maintainers: list[dict[str, str]]
   update_on: NvEntries
   update_on_build: list[OnBuildEntry]
+  update_on_soname: list[dict[str, Any]]
   throttle_info: dict[int, datetime.timedelta]
   repo_depends: list[tuple[str, str]]
   repo_makedepends: list[tuple[str, str]]

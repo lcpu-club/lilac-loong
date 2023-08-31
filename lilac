@@ -242,40 +242,79 @@ def start_build(
   max_concurrency: int,
 ) -> None:
   # built is used to collect built package names
-  sorter, depmap = packages_with_depends(repo)
+
+  rebuild_on_soname = defaultdict(lambda: defaultdict(dict))
+  for p, info in repo.lilacinfos.items():
+    try:
+      for item in info.update_on_soname:
+        pkgname = item['pkgname']
+        pkgbase = item.get('pkgbase', pkgname)
+        for lib in item['libs']:
+          rebuild_on_soname[pkgbase][lib][p] = pkgname
+    except Exception as e:
+      repo.send_error_report(
+        info, subject='%s: failed to load update_on_soname', exc=e,
+      )
+
+  libver_cache = str(mydir / 'libver.json')
+  libvers = defaultdict(lambda: defaultdict(str))
+  if os.path.isfile(libver_cache):
+    with open(libver_cache) as f:
+      libvers.update(json.load(f))
 
   try:
-    buildsorter = BuildSorter(sorter, depmap)
     futures: dict[Future, str] = {}
+    global build_reasons
     with ThreadPoolExecutor(
       max_workers = max_concurrency,
       initializer = setup_thread,
     ) as executor:
-      while True:
-        pkgs = try_pick_some(
-          repo,
-          buildsorter, failed,
-          running = frozenset(futures.values()),
-          limit = max_concurrency - len(futures),
-        )
-        for pkg in pkgs:
-          fu = executor.submit(
-            build_it, pkg, repo, buildsorter, built, failed)
-          futures[fu] = pkg
+      while build_reasons:
+        sorter, depmap = packages_with_depends(repo)
+        buildsorter = BuildSorter(sorter, depmap)
+        packages_to_build = set(build_reasons)
+        rebuild_reasons = defaultdict(list)
+        while True:
+          pkgs = try_pick_some(
+            repo,
+            buildsorter, failed,
+            running = frozenset(futures.values()),
+            limit = max_concurrency - len(futures),
+          )
+          for pkg in pkgs:
+            fu = executor.submit(
+              build_it, pkg, repo, buildsorter, built, failed)
+            futures[fu] = pkg
 
-        if not futures:
-          # no task is running: we're done
-          break
+          if not futures:
+            # no task is running: we're done
+            break
 
-        done, pending = futures_wait(futures, return_when=FIRST_COMPLETED)
-        for fu in done:
-          del futures[fu]
-          fu.result()
+          done, pending = futures_wait(futures, return_when=FIRST_COMPLETED)
+          for fu in done:
+            pkg = futures[fu]
+            if soname_change := fu.result():
+              for lib in soname_change:
+                if libvers[pkg][lib] != (libver := soname_change[lib]):
+                  packages_to_rebuild = rebuild_on_soname[pkg][lib]
+                  logger.info(f'Scheduling rebuild for {lib}={libver}: {list(packages_to_rebuild)}')
+                  packages_to_build -= (built | set(failed) | set(futures.values()))
+                  for p, d in packages_to_rebuild.items():
+                    reason = BuildReason.UpdatedSoname(pkg, d, lib, libver)
+                    if p in packages_to_build:
+                      build_reasons[p].append(reason)
+                    else:
+                      rebuild_reasons[p].append(reason)
+            del futures[fu]
+          # at least one task is done, try pick new tasks
 
-        # at least one task is done, try pick new tasks
+        build_reasons = rebuild_reasons
+        # start build again if there are packages to rebuild
 
   except KeyboardInterrupt:
     logger.info('keyboard interrupted, bye~')
+  
+  json.dump(libvers, open(libver_cache, 'w'))
 
 def try_pick_some(
   repo: Repo,
@@ -352,7 +391,7 @@ def try_pick_some(
 def build_it(
   pkg: str, repo: Repo, buildsorter: BuildSorter,
   built: set[str], failed: dict[str, tuple[str, ...]],
-) -> None:
+) -> Optional[Dict[str, str]]:
   logger.info('building %s', pkg)
   logfile = logdir / f'{pkg}.log'
 
@@ -361,12 +400,19 @@ def build_it(
       db.mark_pkg_as(s, pkg, 'building')
       db.build_updated(s)
 
+  depends = BUILD_DEPMAP.get(pkg, set())
+  for reason in build_reasons[pkg]:
+    if isinstance(reason, BuildReason.UpdatedSoname):
+      dep = Dependency(repo.repodir/reason.pkgbase, reason.pkgname)
+      depends.add(dep)
+      depends.update(BUILD_DEPMAP.get(dep.pkgname, set()))
+
   r, version = build_package(
     pkg, repo.lilacinfos[pkg],
     update_info = nvdata[pkg],
     bindmounts = repo.bindmounts,
     tmpfs = repo.tmpfs,
-    depends = BUILD_DEPMAP.get(pkg, ()),
+    depends = depends,
     repo = REPO,
     myname = MYNAME,
     destdir = DESTDIR,
@@ -469,8 +515,23 @@ def build_it(
 
   if r:
     built.add(pkg)
+    return check_soname_change(logfile)
   elif pkg not in failed:
     failed[pkg] = ()
+
+def check_soname_change(logfile: str) -> dict[str, str]:
+  ret = dict()
+  reading = False
+  for line in open(logfile):
+    if 'Sonames differ' in line:
+      reading = True
+      continue
+    if reading and line.startswith('lib'):
+      lib_and_ver = line.split()[-1].split('-')[0].split('=')
+      ret[lib_and_ver[0]] = lib_and_ver[1]
+    else:
+      reading = False
+  return ret
 
 WORKER_NO = 0
 WORKER_NO_LOCK = threading.Lock()

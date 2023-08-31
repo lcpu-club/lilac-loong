@@ -97,6 +97,7 @@ def load_lilacinfo(dir: Path) -> LilacInfo:
     maintainers = yamlconf.get('maintainers', []),
     update_on = update_ons,
     update_on_build = [OnBuildEntry(**x) for x in yamlconf.get('update_on_build', [])],
+    update_on_soname = yamlconf.get('update_on_soname', []),
     throttle_info = throttle_info,
     repo_depends = yamlconf.get('repo_depends', []),
     repo_makedepends = yamlconf.get('repo_makedepends', []),

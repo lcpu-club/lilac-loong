@@ -115,4 +115,11 @@ class OnBuild(BuildReason):
     d['name'] = self.__class__.__name__
     return d
 
-del NvChecker, UpdatedFailed, UpdatedPkgrel, Depended, FailedByDeps, Cmdline, OnBuild
+class UpdatedSoname(BuildReason):
+  def __init__(self, pkgbase: str, pkgname: str, lib: str, libver: str) -> None:
+    self.pkgbase = pkgbase
+    self.pkgname = pkgname
+    self.lib = lib
+    self.libver = libver
+
+del NvChecker, UpdatedFailed, UpdatedPkgrel, Depended, FailedByDeps, Cmdline, OnBuild, UpdatedSoname
