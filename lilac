@@ -411,7 +411,6 @@ def build_it(
     if isinstance(reason, BuildReason.UpdatedSoname):
       dep = Dependency(repo.repodir/reason.pkgbase, reason.pkgname)
       depends.add(dep)
-      depends.update(BUILD_DEPMAP.get(dep.pkgname, set()))
 
   r, version = build_package(
     pkg, repo.lilacinfos[pkg],
