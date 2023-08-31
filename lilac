@@ -395,6 +395,12 @@ def build_it(
   logger.info('building %s', pkg)
   logfile = logdir / f'{pkg}.log'
 
+  if logfile.is_file():   # rebuild triggered by soname change
+    logfile = logdir / f'{pkg}_rebuild.log'
+    if logfile.is_file():
+      # rebuild is only expected to trigger once
+      logger.warning('logfile %s already exists, overwriting', logfile)
+
   if db.USE:
     with db.get_session() as s:
       db.mark_pkg_as(s, pkg, 'building')
