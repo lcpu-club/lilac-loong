@@ -257,7 +257,7 @@ def start_build(
       )
 
   libver_cache = str(mydir / 'libver.json')
-  libvers = defaultdict(lambda: defaultdict(str))
+  libvers = defaultdict(dict)
   if os.path.isfile(libver_cache):
     with open(libver_cache) as f:
       libvers.update(json.load(f))
@@ -295,7 +295,7 @@ def start_build(
             pkg = futures[fu]
             if soname_change := fu.result():
               for lib in soname_change:
-                if libvers[pkg][lib] != (libver := soname_change[lib]):
+                if libvers[pkg].get(lib, '') != (libver := soname_change[lib]):
                   packages_to_rebuild = rebuild_on_soname[pkg][lib]
                   logger.info(f'Scheduling rebuild for {lib}={libver}: {list(packages_to_rebuild)}')
                   packages_to_build -= (built | set(failed) | set(futures.values()))
@@ -305,6 +305,7 @@ def start_build(
                       build_reasons[p].append(reason)
                     else:
                       rebuild_reasons[p].append(reason)
+              libvers[pkg] = soname_change
             del futures[fu]
           # at least one task is done, try pick new tasks
 
