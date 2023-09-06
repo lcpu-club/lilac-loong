@@ -534,6 +534,8 @@ def check_soname_change(logfile: str) -> dict[str, str]:
       continue
     if reading and line.startswith('lib'):
       lib_and_ver = line.split()[-1].split('=')
+      if not lib_and_ver[0].startswith('lib'):
+        continue  # the lib no longer exists
       ret[lib_and_ver[0]] = lib_and_ver[1].split('-')[0]
     else:
       reading = False
