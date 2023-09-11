@@ -521,7 +521,12 @@ def build_it(
 
   if r:
     built.add(pkg)
-    return check_soname_change(logfile)
+    try:
+      return check_soname_change(logfile)
+    except Exception as e:
+      repo.send_error_report(
+        pkg, subject='%s failed to check soname change', exc=e,
+      )
   elif pkg not in failed:
     failed[pkg] = ()
 
