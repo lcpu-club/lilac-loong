@@ -51,6 +51,11 @@ max_concurrency = 1
 # set proxy for nvchecker
 # proxy = "http://localhost:8000"
 
+# Replace any archpkg entry with an alpm entry using this specific dbpath
+# Useful to avoid too many requests being sent to the Arch server if there are many packages with archpkg entries in the repo
+# You can automatically update the db in prerun
+# archpkg_dbpath = "~/.lilac/pacmandb/archpkg"
+
 [smtp]
 # You can configure a SMTP account here; it defaults to localhost:53
 #host = ""

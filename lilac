@@ -565,6 +565,8 @@ def main_may_raise(
     raise Exception('repo not on master or main, aborting.')
 
   pkgbuild.update_data(PACMAN_DB_DIR)
+  if archpkg_dbpath := config['nvchecker'].get('archpkg_dbpath'):
+    _G.ARCHPKG_DB_DIR = Path(archpkg_dbpath).expanduser()
 
   if dburl := config['lilac'].get('dburl'):
     import sqlalchemy

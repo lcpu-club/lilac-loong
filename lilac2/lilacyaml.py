@@ -149,6 +149,12 @@ def parse_update_on(
     source = entry.get('source')
     if source == 'alpm' or source == 'alpmfiles':
       entry.setdefault('dbpath', str(PACMAN_DB_DIR))
+    try:
+      if _G.ARCHPKG_DB_DIR and source == 'archpkg':
+        entry['source'] = 'alpm'
+        entry['dbpath'] = str(_G.ARCHPKG_DB_DIR)
+    except AttributeError:
+      pass
 
     ret_update.append(entry)
 
