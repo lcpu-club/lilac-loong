@@ -95,6 +95,27 @@ properties:
       required:
         - pkgbase
     minItems: 0
+  update_on_soname:
+    description: Rebuild if sonames in a managed package changes. The packages can be absent from "repo_depends" to handle circular dependencies.
+    type: array
+    items:
+      type: object
+      description: Libraries provided by a package (base). The package should be managed by lilac and use a "build_prefix" providing itself. It should also be in "repo_depends" unless it should be built after the current package due to circular dependency.
+      required:
+        - pkgname
+        - libs
+      properties:
+        pkgbase:
+          type: string
+          default: pkgname
+          description: Package base (directory) name
+        pkgname:
+          type: string
+          description: Package name
+        libs:
+          type: array
+          items:
+            type: string
   maintainers:
     description: List of maintainers for receiving email notifications
     type: array

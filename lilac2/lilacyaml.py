@@ -97,6 +97,7 @@ def load_lilacinfo(dir: Path) -> LilacInfo:
     maintainers = yamlconf.get('maintainers', []),
     update_on = update_ons,
     update_on_build = [OnBuildEntry(**x) for x in yamlconf.get('update_on_build', [])],
+    update_on_soname = yamlconf.get('update_on_soname', []),
     throttle_info = throttle_info,
     repo_depends = yamlconf.get('repo_depends', []),
     repo_makedepends = yamlconf.get('repo_makedepends', []),
@@ -148,6 +149,12 @@ def parse_update_on(
     source = entry.get('source')
     if source == 'alpm' or source == 'alpmfiles':
       entry.setdefault('dbpath', str(PACMAN_DB_DIR))
+    try:
+      if _G.ARCHPKG_DB_DIR and source == 'archpkg':
+        entry['source'] = 'alpm'
+        entry['dbpath'] = str(_G.ARCHPKG_DB_DIR)
+    except AttributeError:
+      pass
 
     ret_update.append(entry)
 
